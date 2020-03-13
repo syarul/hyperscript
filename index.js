@@ -5,6 +5,8 @@ var w = typeof window === 'undefined' ? require('html-element') : window
 var document = w.document
 var Text = w.Text
 
+var eventStore = new (WeakMap || Map)()
+
 function context () {
 
   var cleanupFuncs = []
@@ -59,15 +61,28 @@ function context () {
           if('function' === typeof l[k]) {
             if(/^on\w+/.test(k)) {
               (function (k, l) { // capture k, l in the closure
+                var eData = eventStore.get(e) || {}
                 if (e.addEventListener){
                   e.addEventListener(k.substring(2), l[k], false)
+                  eventStore.set(e, Object.assign(
+                    eData,
+                    { [k.substring(2)]: l[k] }
+                  ))
                   cleanupFuncs.push(function(){
                     e.removeEventListener(k.substring(2), l[k], false)
+                    delete eData[k.substring(2)]
+                    eventStore.set(e, eData)
                   })
                 }else{
                   e.attachEvent(k, l[k])
+                  eventStore.set(e, Object.assign(
+                    eData,
+                    { [k.substring(2)]: l[k] }
+                  ))
                   cleanupFuncs.push(function(){
                     e.detachEvent(k, l[k])
+                    delete eData[k.substring(2)]
+                    eventStore.set(e, eData)
                   })
                 }
               })(k, l)
@@ -143,6 +158,7 @@ function context () {
 
 var h = module.exports = context()
 h.context = context
+h.eventStore = eventStore
 
 function isNode (el) {
   return el && el.nodeName && el.nodeType
