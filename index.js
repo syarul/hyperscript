@@ -61,28 +61,19 @@ function context () {
           if('function' === typeof l[k]) {
             if(/^on\w+/.test(k)) {
               (function (k, l) { // capture k, l in the closure
-                var eData = eventStore.get(e) || {}
                 if (e.addEventListener){
                   e.addEventListener(k.substring(2), l[k], false)
-                  eventStore.set(e, Object.assign(
-                    eData,
-                    { [k.substring(2)]: l[k] }
-                  ))
+                  addEvent(e, k, l)
                   cleanupFuncs.push(function(){
                     e.removeEventListener(k.substring(2), l[k], false)
-                    delete eData[k.substring(2)]
-                    eventStore.set(e, eData)
+                    removeEvent(e, k)
                   })
                 }else{
                   e.attachEvent(k, l[k])
-                  eventStore.set(e, Object.assign(
-                    eData,
-                    { [k.substring(2)]: l[k] }
-                  ))
+                  addEvent(e, k, l)
                   cleanupFuncs.push(function(){
                     e.detachEvent(k, l[k])
-                    delete eData[k.substring(2)]
-                    eventStore.set(e, eData)
+                    removeEvent(e, k)
                   })
                 }
               })(k, l)
@@ -171,6 +162,20 @@ function forEach (arr, fn) {
 
 function isArray (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]'
+}
+
+function addEvent(e, k, l){
+  var eData = eventStore.get(e) || {}
+  eventStore.set(e, Object.assign(
+    eData,
+    { [k.substring(2)]: l[k] }
+  ))
+}
+
+function removeEvent(e, k) {
+  var eData = eventStore.get(e) || {}
+  delete eData[k.substring(2)]
+  eventStore.set(e, eData)
 }
 
 
